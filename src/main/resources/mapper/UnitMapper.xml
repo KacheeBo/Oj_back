@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="cn.jsu.oj.dao.UnitDao">
+    <select id="showUnit" resultType="cn.jsu.oj.pojo.web.dto.UnitInfo">
+         SELECT * FROM `unit_info`
+    </select>
+
+    <select id="showUnitEmpower" parameterType="Integer" resultType="cn.jsu.oj.pojo.web.dto.UnitAuthorize">
+        SELECT * FROM `unit_authorize` WHERE `unit_id` = #{unitId}
+    </select>
+
+    <select id="showUnitUser" parameterType="Integer" resultType="cn.jsu.oj.pojo.web.vo.ShowUnitTeacherVO">
+        SELECT ti.teacher_name,ai.account_email
+        FROM teacher_info ti,account_info ai
+        WHERE ti.unit_id = #{unitId}
+        AND ti.account_id =ai.account_id
+    </select>
+
+    <insert id="addUnit" parameterType="cn.jsu.oj.pojo.web.dto.UnitInfo" useGeneratedKeys="true"
+            keyProperty="unitId">
+        INSERT INTO `unit_info` (`unit_abbreviation`, `unit_school`, `unit_typeid`, `unit_logo`, `unit_sname`, `unit_remarks`)
+         VALUES (#{unitAbbreviation},#{unitSchool},#{unitTypeId}, #{unitLogo},#{unitSName}, #{unitRemarks})
+    </insert>
+
+    <!--    <insert id="addUnitEmpower" parameterType="cn.jsu.oj.pojo.web.dto.UnitAuthorize">-->
+    <!--    INSERT INTO `unit_authorize` (`authorize_content`, `authorize_starttime`, `authorize_stoptime`, `unit_id`)-->
+    <!--    VALUES ('创建题目集',#{authorizeStartTime},#{authorizeStopTime},#{unitId}),-->
+    <!--    ('创建用户组',#{authorizeStartTime},#{authorizeStopTime},#{unitId})-->
+    <!--    ,('自主出卷',#{authorizeStartTime},#{authorizeStopTime},#{unitId}),-->
+    <!--    ('手动出卷',#{authorizeStartTime},#{authorizeStopTime},#{unitId})-->
+    <!--    </insert>-->
+
+    <select id="queryUnit" parameterType="java.lang.String" resultType="cn.jsu.oj.pojo.web.vo.queryUnitVO">
+        SELECT
+            ui.unit_id,
+            ui.unit_abbreviation,
+            ui.unit_school,
+            ui.unit_college,
+            ui.unit_logo,
+            ui.unit_remarks,
+            ui.unit_sname,
+            ut.unit_typename
+        FROM
+            unit_info AS ui ,
+            unit_type AS ut
+        WHERE
+           ui.unit_typeid = ut.unit_typeid
+        AND ui.unit_school LIKE CONCAT('%',#{unitSchool},'%')
+    </select>
+
+    <select id="queryUnitIdByUnitSchool" resultType="Integer" parameterType="String">
+    SELECT * FROM `unit_info` WHERE `unit_school` = #{unitSchool}
+    </select>
+
+</mapper>

@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="cn.jsu.oj.dao.TestDao">
+
+	<select id="showTestList" parameterType="Integer" resultType="TestPaper">
+		SELECT `test_id`, `test_name`,
+		`test_time`, `test_difficulty`
+		FROM `test_paper`
+		WHERE `teacher_id` = #{teacherId}
+	</select>
+
+	<insert id="quoteTestToTopicSet" parameterType="TestPaper">
+		INSERT INTO `qtopicset_test`
+		(`topicset_id`, `test_id`)
+		VALUES (#{topicSetId}, #{testId});
+	</insert>
+
+	<update id="updateTestBaseInfo" parameterType="TestPaper" >
+		UPDATE `test_paper`
+		<set>
+			<if test="testLabelId != null">test_labelid = #{testLabelId},</if>
+			<if test="testFraction != null">test_fraction = #{testFraction},</if>
+			<if test="testTopicNumber != null">test_topicnumber = #{testTopicNumber},</if>
+			<if test="testDifficulty != null">test_difficulty = #{testDifficulty},</if>
+			<if test="testName != null">test_name = #{testName}</if>
+		</set>
+		WHERE test_id = #{testId}
+	</update>
+	<select id="calculationDiff" parameterType="Integer" resultType="QTestTopic">
+		SELECT qt.`topic_id`, qt.`topic_typeid`
+		FROM `qtest_topic` AS qt,
+		`test_paper` AS tp
+		WHERE qt.`test_id` = tp.`test_id`
+		AND qt.`test_id` = #{testId}
+	</select>
+	<select id="diff" parameterType="Integer" resultType="Integer">
+		SELECT `topic_difficulty` FROM
+		<if test="topicTypeId == 1">`topic_judge` AS t</if>
+		<if test="topicTypeId == 2">`topic_singleoptions` AS t</if>
+		<if test="topicTypeId == 3">`topic_doubleoptions` AS t</if>
+		<if test="topicTypeId == 4">`topic_fill` AS t</if>
+		<if test="topicTypeId == 5">`topic_fillprogram` AS t</if>
+		<if test="topicTypeId == 6">`topic_program` AS t</if>
+		<if test="topicTypeId == 7">`topic_function` AS t</if>
+		WHERE `topic_id` = #{topicId};
+	</select>
+
+	<select id="queryExamineList" parameterType="Integer" resultType="ExamineList">
+		SELECT si.`student_number`, si.`student_id`
+		, si.`student_name`, stt.`stutopicset_starttime`, ti.`topicset_endtime`
+		FROM `stu_topicset_sets` stt, `student_info` si, `topicset_info` ti
+		WHERE stt.`topicset_id` = ti.`topicset_id`
+		AND stt.`student_id` = si.`student_id`
+		AND ti.`topicset_id` = #{topicSetId};
+	</select>
+
+	<select id="queryTopicByShareCode" parameterType="java.lang.String" resultType="QTestTopic">
+		SELECT `topic_id`, `topic_typeid`
+		FROM `qtest_topic`
+		WHERE `test_id` = (
+		SELECT `test_id`
+		FROM `test_paper`
+		WHERE `test_sharecode` = #{testShareCode})
+	</select>
+
+	<select id="queryBaseTopic" parameterType="Integer" resultType="BaseTopic">
+		SELECT un.`unit_school`, ti.`teacher_name`, t.`topic_id`,
+		t.`topic_name`, t.`topic_difficulty`, t.`topic_time`, t.`topic_count`
+		FROM `unit_info` AS un, `teacher_info` AS ti,
+		<if test="topicTypeId == 1">`topic_judge` AS t</if>
+		<if test="topicTypeId == 2">`topic_singleoptions` AS t</if>
+		<if test="topicTypeId == 3">`topic_doubleoptions` AS t</if>
+		<if test="topicTypeId == 4">`topic_fill` AS t</if>
+		<if test="topicTypeId == 5">`topic_fillprogram` AS t</if>
+		<if test="topicTypeId == 6">`topic_program` AS t</if>
+		<if test="topicTypeId == 7">`topic_function` AS t</if>
+		WHERE t.`teacher_id` = ti.`teacher_id`
+		AND ti.`unit_id` = un.`unit_id`
+		AND t.`topic_id` = #{topicId};
+	</select>
+
+	<select id="showTestLabelList" parameterType="TestLabel" resultType="TestLabel">
+		SELECT *
+		FROM `test_label`
+		WHERE `teacher_id` = #{teacherId}
+	</select>
+
+	<insert id="addTestType" parameterType="TestLabel">
+		INSERT INTO `test_label`
+		(`label_name`, `teacher_id`)
+		VALUES (#{labelName}, #{teacherId});
+	</insert>
+
+	<update id="updateTestTypeInfo" parameterType="TestLabel" >
+		UPDATE `test_label`
+		SET `label_name` = #{labelName}
+		WHERE `test_labelid` = #{testLabelId}
+	</update>
+
+	<delete id="deleteTestType" parameterType="TestLabel">
+		
+	</delete>
+
+	<update id="moveLabel" parameterType="Integer">
+		UPDATE `test_paper`
+		SET `test_labelid` = #{testLabelId}
+		WHERE `test_id` = #{testId};
+	</update>
+
+	<select id="finDefault" parameterType="Integer" resultType="TestLabel">
+		SELECT `test_labelid`
+		FROM `test_label`
+		WHERE `label_name` = '默认分类'
+		AND `teacher_id` = (
+		SELECT `teacher_id`
+		FROM `test_paper`
+		WHERE `test_id` = #{testId});
+	</select>
+	<select id="have" parameterType="Integer" resultType="Integer">
+		SELECT `test_id`
+		FROM `test_paper`
+		WHERE `test_labelid` = #{testLabelId};
+	</select>
+	<delete id="deleteLabel" parameterType="Integer">
+		DELETE FROM `test_label`
+		WHERE `test_labelid` = #{testLabelId};
+	</delete>
+
+	<insert id="testGuide" parameterType="QTestTopic" useGeneratedKeys="true"  keyProperty="qTestTopicId">
+		INSERT INTO `qtest_topic`
+		(`test_id`, `topic_id`, `topic_typeid`,
+		`topic_fraction`, `topic_title`)
+		VALUES (#{testId}, #{topicId}, #{topicTypeId},
+		 #{topicFraction}, #{topicTitle});
+	</insert>
+	<select id="queryBaseScore" parameterType="QTestTopic" resultType="TestPointInfo">
+		SELECT `testpoint_number`, `testpoint_score`
+		FROM `testpoint_info`
+		WHERE `topic_id` = #{topicId}
+		AND `topic_typeid` = #{topicTypeId}
+	</select>
+	<insert id="addScore" parameterType="Integer">
+		 INSERT INTO `test_changescore`
+		 (`qtest_topicid`, `testpoint_number`, `testpoint_score`)
+		 VALUES (#{qTestTopicId}, #{testPointNumber}, #{testPointScore});
+	</insert>
+
+	<insert id="addTest" parameterType="TestPaper">
+		INSERT INTO `test_paper`
+		(`test_name`, `test_sharecode`, `teacher_id`,
+		`test_labelid`)
+		VALUES (#{testName}, #{testShareCode}, #{teacherId},
+		 #{testLabelId});
+	</insert>
+
+	<select id="showTestTypeId" parameterType="Integer" resultType="QTestTopic">
+		SELECT DISTINCT `topic_typeid`
+		FROM `qtest_topic`
+		WHERE `test_id` = #{testId}
+	</select>
+
+	<select id="showTestTopicList" parameterType="Integer" resultType="Integer">
+		SELECT COUNT(`qtest_topicid`)
+		FROM `qtest_topic`
+		WHERE `test_id` = #{testId}
+		AND `topic_typeid` = #{topicTypeId};
+	</select>
+
+	<select id="queryTestBaseJ" parameterType="TestPaper" resultType="InfoBase">
+		SELECT tp.`test_topicnumber`, tp.`test_difficulty`,
+		tp.`test_fraction`, tp.`test_name`, tp.`test_time`,
+		u.`unit_school`, ti.`teacher_name`
+		FROM `test_paper` AS tp, `teacher_info` AS ti,
+		`unit_info` AS u
+		WHERE ti.`teacher_id` = tp.`teacher_id`
+		AND u.`unit_id` = ti.`unit_id`
+		AND tp.`test_id` = #{testId};
+	</select>
+
+</mapper>

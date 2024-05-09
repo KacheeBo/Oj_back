@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="cn.jsu.oj.dao.UserGroupDao">
+
+    <insert id="createGroup" parameterType="cn.jsu.oj.pojo.web.dto.UserGroupInfo" useGeneratedKeys="true"
+            keyProperty="userGroupId">
+        INSERT INTO `usergroup_info` (`usergroup_name`, `usergroup_permission`, `usergroup_time`, `usergroup_describe`, `usergroup_bindcode`, `teacher_id`, `unit_id`, `usergroup_sharecode`)
+        VALUES ( #{userGroupName},#{userGroupPermission},#{userGroupTime},#{userGroupDescribe},#{userGroupBindCode},#{teacherId},#{unitId},#{userGroupShareCode});
+    </insert>
+
+    <select id="getUnitId" resultType="Integer" parameterType="Integer">
+   		SELECT `unit_id` FROM `teacher_info` WHERE `teacher_id` = #{teacherId}
+	</select>
+
+    <select id="showGroupBasic" parameterType="cn.jsu.oj.pojo.web.dto.UserGroupInfo"
+            resultType="cn.jsu.oj.pojo.web.vo.UserGroupBaseInfo">
+        SELECT
+			usergroup_info.usergroup_id,
+			usergroup_info.usergroup_name,
+			usergroup_info.usergroup_permission,
+			usergroup_info.usergroup_time,
+			usergroup_info.usergroup_num,
+			usergroup_info.usergroup_describe,
+			usergroup_info.usergroup_bindcode,
+			usergroup_info.teacher_id,
+			usergroup_info.unit_id,
+			usergroup_info.usergroup_sharecode,
+			usergroup_info.usergroup_recycled,
+			teacher_info.teacher_name
+		FROM
+			usergroup_info,
+			teacher_info
+		WHERE
+			usergroup_info.teacher_id = teacher_info.teacher_id
+		AND usergroup_info.teacher_id =#{teacherId}
+		AND usergroup_info.usergroup_recycled = #{userGroupRecycled}
+    </select>
+
+    <select id="getAccountIdByEmails" parameterType="String" resultType="Integer">
+		SELECT account_info.account_id
+		FROM account_info
+		WHERE account_email = #{email}
+	</select>
+
+    <select id="checkAccountIdIsBind" parameterType="Integer" resultType="Integer">
+		SELECT account_id
+		FROM usergroup_invite
+		WHERE account_id =#{accountId}
+		AND usergroup_id =#{userGroupId}
+	</select>
+
+    <insert id="addGroupInvited">
+		INSERT INTO `usergroup_invite` (`usergroup_id`, `account_id`)
+		VALUES (#{userGroupId},#{accountId});
+	</insert>
+
+    <select id="showGroupInvited" resultType="cn.jsu.oj.pojo.web.vo.ShowUserGroupInvitedInfo" parameterType="Integer">
+		SELECT
+			ai.account_email,
+			ai.account_nickname,
+			ui.i_head,
+			ugi.invite_id
+		FROM
+			account_info ai,
+			usergroup_invite ugi,
+			user_info ui
+		WHERE
+			ui.account_id = ai.account_id
+		AND ai.account_id = ugi.account_id
+		AND ugi.usergroup_id = #{userGroupId}
+		AND ugi.account_id IN (
+		SELECT
+			ui.account_id
+		FROM
+			usergroup_invite ui
+		WHERE
+			ui.usergroup_id = #{userGroupId})
+	</select>
+
+    <delete id="deleteGroupInvitedUser" parameterType="Integer">
+		DELETE FROM `usergroup_invite` WHERE (`invite_id`=#{invitedId})
+	</delete>
+
+    <select id="showGroupStudent" resultType="cn.jsu.oj.pojo.web.vo.ShowGroupInvitedVO" parameterType="Integer">
+		SELECT ub.`bind_id`,si.`student_number` ,si.`student_name` ,si.`student_email`
+		FROM `usergroup_bind` ub ,`student_info` si
+		WHERE ub.`usergroup_id` = #{userGroupId}
+		AND ub.`student_id`=si.`student_id`
+	</select>
+
+    <delete id="deleteGroupStudent" parameterType="Integer">
+		DELETE FROM `usergroup_bind` WHERE (`bind_id`=#{bindId})
+	</delete>
+
+    <select id="showGroupEmpower" parameterType="Integer" resultType="cn.jsu.oj.pojo.web.vo.ShowGroupEmpowerVO">
+		SELECT
+			topicset_info.topicset_name,
+			usergroup_authority.authority_id,
+			usergroup_authority.usergroup_id,
+			usergroup_authority.authority_subject,
+			usergroup_authority.authority_details,
+			usergroup_authority.authority_list,
+			usergroup_authority.authority_answer,
+			usergroup_authority.authority_correct,
+			usergroup_authority.authority_rank,
+			usergroup_authority.authority_jurisdiction
+		FROM
+			usergroup_authority ,
+			topicset_info
+		WHERE
+			usergroup_authority.usergroup_id = #{userGroupId} AND
+			topicset_info.topicset_id = usergroup_authority.topicset_id
+	</select>
+
+    <select id="queryGroupUnit" parameterType="Integer" resultType="cn.jsu.oj.pojo.web.vo.QueryGroupUnitVO">
+		SELECT ui.usergroup_id, ui.usergroup_name
+		FROM teacher_info as ti,usergroup_info as ui
+		WHERE ui.unit_id = ti.unit_id
+		AND ti.teacher_id = #{teacherId}
+		AND usergroup_permission = 1
+	</select>
+
+    <select id="queryGroupUnitUser" parameterType="Integer" resultType="cn.jsu.oj.pojo.web.vo.QueryGroupUnitUserVO">
+		SELECT `student_info`.`student_id`,`student_info`.`student_name`,`student_info`.`student_number`
+		FROM `student_info`,`usergroup_bind`
+		WHERE `student_info`.`student_id`=`usergroup_bind`.`student_id` and `usergroup_bind`.`usergroup_id` = #{userGroupId}
+	</select>
+
+    <select id="showGroupInvitedCode" parameterType="Integer" resultType="cn.jsu.oj.pojo.web.dto.UserGroupInviteCode">
+		SELECT *
+		FROM usergroup_invitecode
+		WHERE usergroup_id = #{userGroupId}
+	</select>
+
+    <select id="queryStudentId" resultType="Integer">
+		SELECT student_info.student_id
+		FROM student_info
+		WHERE student_number=#{studentNumber} AND unit_id=#{unitId}
+	</select>
+
+    <insert id="addStudentInfo" parameterType="cn.jsu.oj.pojo.web.dto.StudentInfo" useGeneratedKeys="true"
+            keyProperty="studentId">
+        INSERT INTO `student_info` (`student_number`, `student_name`, `unit_id`)
+        VALUES (#{studentNumber},#{studentName},#{unitId})
+    </insert>
+
+    <insert id="addUserGroupBind">
+		INSERT INTO `usergroup_bind` (`usergroup_id`, `student_id`)
+		VALUES (#{userGroupId},#{studentId})
+	</insert>
+
+    <select id="queryBindId" resultType="Integer">
+	SELECT bind_id FROM usergroup_bind WHERE usergroup_id = #{userGroupId} AND student_id = #{studentId}
+	</select>
+
+    <select id="queryUnitId" resultType="Integer">
+		SELECT
+		usergroup_info.unit_id
+		FROM
+		usergroup_info
+		WHERE
+		usergroup_info.usergroup_id = #{unitId}
+	</select>
+
+    <select id="showGroupTopicSet" resultType="cn.jsu.oj.pojo.web.vo.ShowGroupTopicSetVO"
+            parameterType="cn.jsu.oj.pojo.web.dto.UserGroupInfo">
+		SELECT
+			topicset_info.topicset_id,
+			topicset_info.topicset_name,
+			topicset_info.topicset_releasetime
+		FROM
+			topicset_info
+		WHERE
+			topicset_info.teacher_id = #{teacherId}
+		AND topicset_info.topicset_id NOT IN (
+			SELECT
+				usergroup_authority.topicset_id
+			FROM
+				usergroup_authority
+			WHERE
+				usergroup_authority.usergroup_id = #{userGroupId}
+		)
+	</select>
+
+    <insert id="addGroupInvitedCode" parameterType="cn.jsu.oj.pojo.web.dto.UserGroupInviteCode">
+		INSERT INTO `usergroup_invitecode` (`invitecode_time`, `invitecode_content`, `usergroup_id`) VALUES (#{inviteCodeTime}, #{inviteCodeContent},#{userGroupId})
+	</insert>
+
+    <delete id="deleteGroupInvitedCode" parameterType="Integer">
+		DELETE FROM `usergroup_invitecode` WHERE (`invitecode_id`=#{inviteCodeId})
+	</delete>
+
+    <delete id="deleteGroupEmpower" parameterType="Integer">
+		DELETE FROM `usergroup_authority` WHERE (`authority_id`=#{authorityId})
+	</delete>
+
+    <delete id="deleteGroup" parameterType="Integer">
+		DELETE FROM `usergroup_info` WHERE (`usergroup_id`=#{userGroupId})
+	</delete>
+
+    <update id="removeGroup">
+		UPDATE `usergroup_info` SET `usergroup_recycled`='1' WHERE (`usergroup_id`=#{userGrouId})
+	</update>
+
+    <update id="recoverGroup">
+		UPDATE `usergroup_info` SET `usergroup_recycled`='0' WHERE (`usergroup_id`=#{userGrouId})
+	</update>
+
+    <update id="updateGroupBasic" parameterType="cn.jsu.oj.pojo.web.dto.UserGroupInfo">
+		UPDATE `usergroup_info` SET `usergroup_name`=#{userGroupName}, `usergroup_permission`=#{userGroupPermission}, `usergroup_describe`=#{userGroupDescribe} WHERE `usergroup_id`=#{userGroupId}
+	</update>
+
+    <select id="queryGroupById" resultType="cn.jsu.oj.pojo.web.vo.QueryGroupByIdVO" parameterType="Integer">
+		SELECT
+			usergroup_info.usergroup_id,
+			usergroup_info.usergroup_name,
+			usergroup_info.usergroup_sharecode,
+			usergroup_info.usergroup_bindcode,
+			usergroup_info.usergroup_describe
+		FROM
+			usergroup_info
+		WHERE
+			usergroup_info.usergroup_id = #{userGroupId}
+	</select>
+
+    <insert id="addGroupEmpower" parameterType="cn.jsu.oj.pojo.web.dto.UserGroupAuthority">
+		INSERT INTO `usergroup_authority` (`usergroup_id`, `topicset_id`, `authority_subject`, `authority_answer`, `authority_list`, `authority_details`, `authority_correct`, `authority_rank`, `authority_jurisdiction`)
+ 		VALUES (#{userGroupId}, #{topicSetId}, #{authoritySubject}, #{authorityAnswer}, #{authorityList}, #{authorityDetails},#{authorityCorrect},#{authorityRank},#{authorityJurisdiction})
+	</insert>
+
+    <select id="queryGroupBasic" resultType="cn.jsu.oj.pojo.web.dto.UserGroupInfo"
+            parameterType="cn.jsu.oj.pojo.web.dto.UserGroupInfo">
+		SELECT *
+		FROM
+			usergroup_info
+		WHERE
+			teacher_id =#{teacherId}
+		AND
+			usergroup_name LIKE CONCAT('%',#{userGroupName},'%')
+	</select>
+
+    <select id="queryGroupStudent" resultType="cn.jsu.oj.pojo.web.vo.QueryGroupStudentResponseVO"
+            parameterType="cn.jsu.oj.pojo.web.vo.QueryGroupStudentRequestVO">
+        SELECT
+        ub.bind_id,
+        si.student_number,
+        si.student_name,
+        si.student_email
+        FROM
+        usergroup_bind ub,
+        student_info si
+        WHERE
+        ub.student_id = si.student_id
+        AND si.student_id
+        <if test="queryType =='studentNumber'">
+            IN(
+            SELECT
+            student_info.student_id
+            FROM
+            student_info
+            WHERE
+            student_number LIKE CONCAT('%',#{queryInput},'%')
+            )
+        </if>
+        <if test="queryType =='studentName'">
+            in(
+            SELECT
+            student_info.student_id
+            FROM
+            student_info
+            WHERE
+            student_name LIKE CONCAT('%',#{queryInput},'%')
+            )
+        </if>
+        AND ub.usergroup_id = #{userGroupId}
+    </select>
+
+    <update id="updateGroupEmpower" parameterType="cn.jsu.oj.pojo.web.dto.UserGroupAuthority">
+		UPDATE `usergroup_authority`
+		SET `authority_subject`=#{authoritySubject}, `authority_answer`=#{authorityAnswer}, `authority_list`=#{authorityList}, `authority_details`=#{authorityDetails}, `authority_correct`=#{authorityCorrect}, `authority_rank`=#{authorityRank}, `authority_jurisdiction`=#{authorityJurisdiction}
+		WHERE (`authority_id`=#{authorityId})
+	</update>
+
+    <update id="countUserGroupNumberByGroupId" parameterType="Integer">
+		UPDATE `usergroup_info`
+		SET `usergroup_num` = (
+		SELECT
+			SUM(t1.num1 + t2.num2)
+		FROM
+			(
+			SELECT
+				count(*) num1
+			FROM
+				usergroup_invite
+			WHERE
+				usergroup_id = #{userGroupId}
+			) t1,
+			(
+			SELECT
+				count(*) num2
+			FROM
+				usergroup_bind
+			WHERE
+				usergroup_id = #{userGroupId}
+			) t2
+			)
+			WHERE
+			(`usergroup_id` = #{userGroupId})
+	</update>
+
+
+    <select id="queryUserGroupIdByInviteCodeContent" resultType="java.lang.Integer" parameterType="Integer">
+    	SELECT
+		ui.usergroup_id
+		FROM
+		usergroup_invitecode AS ui
+		WHERE
+		ui.invitecode_content = #{inviteCodeContent}
+    </select>
+
+</mapper>
+

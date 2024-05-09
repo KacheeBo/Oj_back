@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="cn.jsu.oj.dao.FileDao">
+
+	<insert id="story" parameterType="TestPointInfo">
+		INSERT INTO `testpoint_info`
+		( `testpoint_number`, `testpoint_score`,
+		 `topic_id`, `topic_typeid`, `topic_tip`)
+		VALUES ( #{testPointNumber}, #{testPointScore},
+		 #{topicId}, #{topicTypeId}, #{topicTip});
+	</insert>
+	<delete id="deletePre" parameterType="TestPointInfo">
+		DELETE FROM `testpoint_info`
+	    WHERE `topic_id` = #{topicId}
+	    AND `topic_typeid` = #{topicTypeId}
+	</delete>
+	<select id="query" parameterType="TestPointInfo" resultType="TestPointInfo">
+		SELECT `testpoint_id`
+		FROM `testpoint_info`
+		WHERE `topic_id` = #{topicId}
+		AND `topic_typeid` = #{topicTypeId}
+		AND `testpoint_number` = #{testPointNumber}
+	</select>
+
+	<update id="update" parameterType="TestPointInfo">
+		UPDATE `testpoint_info`
+		SET
+		<if test="testPointNumber != null">`testpoint_number` = #{testPointNumber} ,</if>
+		<if test="testPointScore != null">`testpoint_score` = #{testPointScore},</if>
+		<if test="topicId != null">`topic_id` = #{topicId},</if>
+		<if test="topicTypeId != null">`topic_typeid` = #{topicTypeId} ,</if>
+		<if test="topicTip != null">`topic_tip` = #{topicTip}</if>
+	    WHERE `testpoint_id` = #{testPointId};
+	</update>
+
+	<insert id="addOneKnowLedgeJ">
+		INSERT INTO `knowledge_points`
+		(`knowledge_fatherid`, `knowledge_type`)
+		VALUES (#{knowledgeFatherId}, #{knowledgeType});
+	</insert>
+
+	<!--上传用户头像-->
+	<update id="insertImg" parameterType="UserInfo">
+		UPDATE user_info
+		SET i_head = #{iHead}
+		WHERE account_id = #{accountId}
+	</update>
+
+	<select id="test" resultType="cn.jsu.oj.pojo.web.dto.UserInfo">
+	SELECT * FROM `user_info`
+	</select>
+
+	<select id="queryTP" parameterType="Integer" resultType="TopicProgram">
+		SELECT `topic_timel`, `topic_memoryl`,
+		`topic_answer`, `topic_weight`, `language_id`
+		FROM `topic_program`
+		WHERE `topic_id` = #{topicId}
+	</select>
+	<update id="addWeigth" parameterType="TopicProgram">
+		UPDATE `topic_program`
+		SET `topic_tstatus` = #{topicTStatus} ,
+		`topic_weight` = #{topicWeight}
+		WHERE `topic_id` = #{topicId};
+	</update>
+</mapper>

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="cn.jsu.oj.dao.PersonalDao">
+    <update id="updateUserNickname" parameterType="cn.jsu.oj.pojo.web.dto.AccountInfo">
+        UPDATE `account_info` SET `account_nickname`=#{accountNickName} WHERE (`account_id`=#{accountId})
+    </update>
+
+    <update id="updateUserEmail" parameterType="cn.jsu.oj.pojo.web.dto.AccountInfo">
+        UPDATE `account_info` SET `account_email`= #{accountEmail} WHERE (`account_id`=#{accountId})
+    </update>
+
+
+    <update id="updateUserPassword" parameterType="cn.jsu.oj.pojo.web.vo.UpdateUserPasswordVO">
+        UPDATE `account_info` SET `account_password`= #{accountPassword} where (`account_id`=#{accountId})
+    </update>
+
+    <select id="queryEmail" parameterType="cn.jsu.oj.pojo.web.dto.AccountInfo" resultType="Integer">
+        SELECT
+            account_info.account_id
+        FROM
+            account_info
+        WHERE
+            account_info.account_email = #{accountEmail}
+    </select>
+
+    <select id="checkAccountPassWord" parameterType="cn.jsu.oj.pojo.web.dto.AccountInfo" resultType="Integer">
+        SELECT
+           account_info.account_id
+        FROM
+         account_info
+        WHERE
+         account_info.account_id = #{accountId} AND
+         account_info.account_password =#{accountPassword}
+    </select>
+
+    <select id="showTeacherUnit" parameterType="cn.jsu.oj.pojo.web.dto.AccountInfo"
+            resultType="cn.jsu.oj.pojo.web.dto.UnitInfo">
+        SELECT *
+        FROM
+            unit_info ui
+        WHERE ui.unit_id =(
+        SELECT ti.unit_id
+        FROM teacher_info ti,account_info ai
+        WHERE ti.account_id = ai.account_id
+        AND ai.account_id = #{accountId})
+    </select>
+
+
+    <select id="showPersonalInfo" parameterType="Integer" resultType="cn.jsu.oj.pojo.web.vo.ShowPersonalInfoVO">
+        SELECT
+            user_info.i_sex,
+            user_info.i_head,
+            user_info.i_birthday,
+            user_info.i_phone,
+            user_info.i_name,
+            user_info.i_postcode,
+            user_info.i_address,
+            user_info.i_id,
+            account_info.account_email
+        FROM
+            user_info ,
+            account_info
+        WHERE
+           user_info.account_id = account_info.account_id
+        AND account_info.account_id  = #{accountId}
+    </select>
+
+    <update id="updatePersonalInfo" parameterType="cn.jsu.oj.pojo.web.dto.UserInfo">
+        UPDATE `user_info`
+        SET `i_sex`=#{iSex},
+        `i_birthday`=#{iBirthday},
+        `i_phone`=#{iPhone},
+         `i_name`=#{iName},
+         `i_address`=#{iAddress},
+          `i_postcode`=#{iPostCode}
+          WHERE (`i_id`=#{accountId})
+    </update>
+
+    <select id="showBindInfo" resultType="cn.jsu.oj.pojo.web.vo.ShowBindInfoVO" parameterType="Integer">
+        SELECT
+            ui.unit_school,
+            ui.unit_college,
+            ui.unit_logo,
+            si.student_name,
+            si.student_number
+        FROM
+	        unit_info ui,
+            student_info si
+        WHERE si.account_id = #{accountId}
+        AND
+	        ui.unit_id in (
+		SELECT
+			st.unit_id
+		FROM
+			student_info st
+		WHERE
+			st.account_id = #{accountId})
+    </select>
+
+    <select id="queryStudentName" parameterType="cn.jsu.oj.pojo.web.dto.StudentInfo" resultType="java.lang.String">
+        SELECT student_name
+        FROM student_info st
+        WHERE
+        st.student_number = #{studentNumber}
+        AND
+        st.unit_id = #{unitId}
+    </select>
+
+    <select id="findGroupIdByBindCode" parameterType="java.lang.String" resultType="Integer">
+        SELECT ui.usergroup_id
+        FROM usergroup_info ui
+        WHERE ui.usergroup_bindcode = #{bindCode}
+    </select>
+
+
+    <select id="findGroupIdByInviteCode" parameterType="java.lang.String" resultType="Integer">
+        SELECT ui.usergroup_id
+        FROM `usergroup_invitecode` ui
+        WHERE `invitecode_content` = #{inviteCodeContent}
+    </select>
+
+    <select id="findStdIdByUnitAndStdNumber" resultType="Integer" parameterType="cn.jsu.oj.pojo.web.vo.StudentAuthenticationVO">
+        SELECT
+            si.student_id
+        FROM
+            student_info si
+        WHERE
+            si.student_number = #{studentNumber}
+        AND si.unit_id = #{unitId}
+    </select>
+
+
+    <select id="findBindIdByStdIdAndGroupId" parameterType="Integer" resultType="Integer">
+        SELECT
+            ub.bind_id
+         FROM usergroup_bind ub
+         WHERE
+         ub.student_id = #{studentId}
+         AND
+         ub.usergroup_id = #{userGroupId}
+    </select>
+
+    <update id="studentAuthentication">
+        UPDATE `student_info` si,
+         `account_info` ai,
+         (
+            SELECT
+                `ai`.`account_email`
+            FROM
+                `account_info` ai
+            WHERE
+                `ai`.`account_id` = #{accountId}
+        ) t1
+        SET `si`.`student_email` = t1.account_email,
+         `si`.`account_id` = #{accountId},
+
+        WHERE
+            `si`.student_id = #{studentId}
+        AND `ai`.`account_id` = #{accountId}
+    </update>
+
+    <select id="findInvitedIdByAccountIdAndGroupId" parameterType="cn.jsu.oj.pojo.web.dto.UserGroupInvite" resultType="Integer">
+        SELECT ui.invite_id
+        FROM usergroup_invite ui
+        WHERE ui.account_id = #{accountId}
+        AND ui.usergroup_id = #{userGroupId}
+    </select>
+
+    <insert id="invitedMakeQuestion" parameterType="cn.jsu.oj.pojo.web.dto.UserGroupInviteCode">
+        INSERT INTO `usergroup_invite` (`usergroup_id`, `account_id`)
+        VALUES ((SELECT ui.usergroup_id
+        FROM usergroup_invitecode ui
+        WHERE ui.invitecode_content = #{inviteCodeContent}),#{accountId})
+    </insert>
+
+</mapper>

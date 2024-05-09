@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="cn.jsu.oj.dao.TopicSetDao">
+
+	<!--允许JDBC支持自动生成主键，需要驱动兼容。
+	如果设置为true则这个设置强制使用自动生成主键，尽管一些驱动不能兼容但仍可正常工作（比如 Derby）。 -->
+	<insert id="createTopicSet" parameterType="TopicSetInfo" useGeneratedKeys="true"  keyProperty="topicSetId">
+		INSERT INTO `topicset_info` (`topicset_name`, `topicset_typeid`, `teacher_id`, `topicset_labelid`,
+		`topicset_notice`, `topicset_releasetime`, `topicset_starttime`, `topicset_endtime`,
+		`topicset_lanswertime`, `topicset_answertime`,
+		`rule_id`, `topicset_recycled`, `topicset_hiddenname`, `topicset_advance`, `topicset_difficulty`)
+		VALUES ( #{topicSetName}, #{topicSetTypeId}, #{teacherId}, #{topicSetLabelId}, #{topicSetNotice}, #{topicSetReleaseTime},
+		#{topicSetStartTime}, #{topicSetEndTime}, #{topicSetLAnswerTime}, #{topicSetAnswerTime},
+		#{ruleId}, #{topicSetRecycled}, #{topicSetHiddenName}, #{topicSetAdvance}, #{topicSetDifficulty} );
+	</insert>
+
+	<select id="showTopicSet" resultType="TopicSetBaseInfo">
+		SELECT ts.`topicset_id`, t.`teacher_id`, `topicset_name`, u.`unit_sname`,
+		t.`teacher_name`, ts.`topicset_releasetime`, ts.`topicset_starttime`,
+		ts.`topicset_endtime`, ts.`topicset_difficulty`
+		FROM `unit_info` AS u ,`teacher_info` AS t ,`topicset_info` AS ts
+		WHERE ts.`teacher_id` = t.`teacher_id`
+		AND u.`unit_id` = t.`unit_id`
+		AND	ts.`topicset_recycled` = #{topicSetRecycled}
+		AND t.`teacher_id` = #{teacherId};
+	</select>
+
+	<select id="queryTopicSetType" resultType="TopicSetType">
+		SELECT * FROM `topicset_type`
+	</select>
+
+	<select id="queryLanguage" resultType="CompilerLanguage">
+		SELECT * FROM `compiler_language`
+	</select>
+
+	<select id="queryMultipleChoiceRule" resultType="MultipleChoiceRule">
+		SELECT * FROM `multiplechoice_rule`
+	</select>
+
+	<select id="queryTopicSetSort" parameterType="Integer" resultType="TopicSetLabel">
+		SELECT * FROM `topicset_label`createTopicSet
+		WHERE `teacher_id` = #{teacherId}
+	</select>
+
+	<select id="queryTopicSetInfoById" parameterType="Integer" resultType="TopicSetSpecific">
+		SELECT ts.*, u.*, t.*, tt.*
+		FROM `topicset_info` AS ts,
+		`unit_info` AS u,
+		`teacher_info` AS t,
+		`topicset_type` AS tt
+		WHERE t.`teacher_id` = ts.`teacher_id`
+		AND t.`unit_id` = u.`unit_id`
+		AND ts.`topicset_typeid` = tt.`topicset_typeid`
+		AND ts.`topicset_id` = #{topicSetId}
+		AND ts.`teacher_id` = #{teacherId}
+	</select>
+
+	<update id="updateTopicSetInfo" parameterType="TopicSetInfo" useGeneratedKeys="true"  keyProperty="topicSetId">
+		UPDATE `judge`.`topicset_info`
+		SET `topicset_name` = #{topicSetName}, `topicset_typeid` = #{topicSetTypeId},
+		`topicset_notice` = #{topicSetNotice} ,`topicset_starttime` = #{topicSetStartTime},`topicset_endtime` = #{topicSetEndTime},
+		`topicset_lanswertime` = #{topicSetLAnswerTime}, `topicset_answertime`= #{topicSetAnswerTime},
+		`rule_id` = #{ruleId}, `topicset_hiddenname` = #{topicSetHiddenName},
+		`topicset_advance` = #{topicSetAdvance}, `topicset_difficulty` = #{topicSetDifficulty}
+		WHERE `topicset_id` = #{topicSetId};
+	</update>
+
+	<update id="moveTopicSet" parameterType="Integer">
+		UPDATE `topicset_info`
+		SET `topicset_recycled` = ABS(`topicset_recycled`-1)
+		WHERE `topicset_id`= #{topicSetId};
+	</update>
+
+	<select id="queryGroupByTopicSetId" parameterType="Integer" resultType="AuthorityUserGroup">
+		SELECT * FROM `usergroup_info` AS ui,
+		`usergroup_authority` AS ua
+		WHERE ua.`usergroup_id` = ui.`usergroup_id`
+		AND ua.`topicset_id` = #{topicSetId}
+	</select>
+
+	<select id="queryUnEmpowerGroup" parameterType="Integer" resultType="UserGroupInfo">
+		SELECT `usergroup_name`,`usergroup_id`,`usergroup_time`
+        FROM `usergroup_info` ui
+        WHERE ui.`teacher_id` = #{teacherId}
+        AND ui.`usergroup_id`
+        NOT IN (
+		SELECT `usergroup_id`
+		FROM `usergroup_authority` AS ua
+		WHERE ua.`topicset_id` = #{topicSetId})
+	</select>
+
+	<insert id="addTopicSetEmpower" parameterType="UserGroupAuthority" >
+		INSERT INTO `usergroup_authority` (`usergroup_id`, `topicset_id`,
+		 `authority_subject`, `authority_answer`, `authority_list`,
+		 `authority_details`, `authority_correct`, `authority_rank`,
+		 `authority_jurisdiction`)
+		VALUES (#{userGroupId}, #{topicSetId}, #{authoritySubject}, #{authorityAnswer}, #{authorityList}, #{authorityDetails}, #{authorityCorrect}, #{authorityRank}, #{authorityJurisdiction});
+	</insert>
+
+	<update id="updateByAuthorityId" parameterType="UserGroupAuthority">
+		UPDATE `usergroup_authority`
+		SET `usergroup_id` = #{userGroupId},
+		`topicset_id` = #{topicSetId},
+		`authority_subject` = #{authoritySubject},
+		`authority_answer` = #{authorityAnswer},
+		`authority_list` = #{authorityList},
+		`authority_details` = #{authorityDetails},
+		`authority_correct` = #{authorityCorrect},
+		`authority_rank` = #{authorityRank},
+		`authority_jurisdiction` = #{authorityJurisdiction}
+		WHERE `authority_id` = #{authorityId};
+	</update>
+
+	<delete id="deleteAuthorityId" parameterType="Integer">
+		DELETE FROM `usergroup_authority`
+		WHERE `authority_id` = #{authorityId};
+	</delete>
+
+	<insert id="addTopicSetSort" parameterType="TopicSetLabel" >
+		INSERT INTO `topicset_label` (`label_name`, `teacher_id`)
+		VALUES (#{labelName}, #{teacherId});
+	</insert>
+
+	<update id="updateTopicSetSort" parameterType="TopicSetLabel">
+		UPDATE `topicset_label`
+		SET `label_name` = #{labelName}
+		WHERE `topicset_labelid` = #{topicSetLabelId}
+	</update>
+
+	<delete id="deleteTopicSetSortById"  parameterType="TopicSetLabel">
+		DELETE FROM `topicset_label`
+		WHERE `topicset_labelid` = #{topicSetLabelId};
+	</delete>
+
+	<select id="queryTopicSetIdX" parameterType="TopicSetInfo" resultType="QTestTopic">
+		SELECT `topic_id`, `topic_typeid`,
+		`topic_fraction`, `topic_title`
+		FROM `qtest_topic`
+		WHERE `test_id` = (
+		SELECT `test_id`
+		FROM `qtopicset_test`
+		WHERE `topicset_id` = #{topicSetId})
+	</select>
+	<select id="queryTopicSetIdJ" parameterType="TestPaper" resultType="QTestTopic">
+		SELECT `topic_id`, `topic_typeid`,
+		`topic_fraction`, `topic_title`
+		FROM `qtest_topic`
+		WHERE `test_id` = #{testId}
+	</select>
+	<select id="queryTopicByTopicSetIdX" parameterType="Integer" resultType="Tow">
+		SELECT t.`topic_name`, t.`topic_description`, t.`topic_difficulty`
+		FROM
+		<if test="topicTypeId == 1">`topic_judge` AS t</if>
+		<if test="topicTypeId == 2">`topic_singleoptions` AS t</if>
+		<if test="topicTypeId == 3">`topic_doubleoptions` AS t</if>
+		<if test="topicTypeId == 4">`topic_fill` AS t</if>
+		<if test="topicTypeId == 5">`topic_fillprogram` AS t</if>
+		<if test="topicTypeId == 6">`topic_program` AS t</if>
+		<if test="topicTypeId == 7">`topic_function` AS t</if>
+		WHERE t.`topic_id` = #{topicId};
+	</select>
+	<select id="querySelect" parameterType="Integer" resultType="TopicOptionsContent">
+		SELECT `options_id`, `options_label`, `options_content`
+		FROM `topic_options_content`
+		WHERE `topic_id` = #{topicId}
+		and `topic_typeid` = #{topicTypeId}
+	</select>
+
+	<select id="queryStudentTopicSet" parameterType="Integer" resultType="TopicSetSpecific">
+		SELECT ts.`topicset_id`, ts.`topicset_name`, ts.`topicset_releasetime`,
+		ti.`teacher_name`, ui.`unit_school`, ts.`topicset_difficulty`,
+		ts.`topicset_starttime`, ts.`topicset_endtime`, ti.`account_id`
+		FROM `topicset_info` AS ts, `teacher_info` AS ti, `unit_info` AS ui
+		WHERE ts.`topicset_id` = #{topicSetId}
+		AND ts.`teacher_id` = ti.`teacher_id`
+		AND ti.`unit_id` = ui.`unit_id`
+	</select>
+	<select id="queryTopicSetId" parameterType="Integer" resultType="TopicSetInfo">
+		SELECT `topicset_id`
+		FROM `usergroup_authority`
+		WHERE `usergroup_id` = (
+		SELECT `usergroup_id`
+		FROM `usergroup_bind`
+		WHERE `student_id` = (
+		SELECT `student_id`
+		FROM `student_info`
+		WHERE `account_id` = #{accountId}))
+	</select>
+	<select id="queryTopicSetIdN" parameterType="Integer" resultType="TopicSetInfo">
+		SELECT `topicset_id`
+		FROM `usergroup_authority`
+		WHERE `usergroup_id` = (
+		SELECT `usergroup_id`
+		FROM `usergroup_invite`
+		WHERE `account_id` = #{accountId})
+	</select>
+
+	<select id="queryStudentTopicSetX" parameterType="topicSetInfo" resultType="TopicSetSpecific">
+		SELECT ts.*, u.*, t.*, tt.*
+		FROM `topicset_info` AS ts,
+		`unit_info` AS u,
+		`teacher_info` AS t,
+		`topicset_type` AS tt
+		WHERE t.`teacher_id` = ts.`teacher_id`
+		AND t.`unit_id` = u.`unit_id`
+		AND ts.`topicset_typeid` = tt.`topicset_typeid`
+		AND ts.`topicset_id` = #{topicSetId}
+	</select>
+</mapper>

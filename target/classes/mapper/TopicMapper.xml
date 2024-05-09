@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="cn.jsu.oj.dao.TopicDao">
+
+	<select id="queryTopicType" resultType="TopicType">
+		SELECT * FROM `topic_type`
+	</select>
+
+	<select id="queryUserInfo" parameterType="TeacherInfo" resultType="TeacherBaseInfo" >
+		SELECT u.`unit_school`, t.`teacher_id`, t.`teacher_name`
+		FROM `teacher_info` AS t,
+		`unit_info` AS u
+		WHERE t.`unit_id` = u.`unit_id`
+		AND `teacher_id` = #{teacherId}
+	</select>
+
+	<select id="queryTopicKnowLedge" parameterType="KnowledgePoints" resultType="KnowledgePoints">
+		SELECT * FROM `knowledge_points`
+		WHERE `knowledge_fatherid` = #{knowledgeFatherId};
+	</select>
+	<select id="queryTopicKnowLedgeNull" resultType="KnowledgePoints">
+		SELECT * FROM `knowledge_points`
+		WHERE `knowledge_fatherid` IS NULL;
+	</select>
+
+	<insert id="addTopicProgram" parameterType="TopicProgram" useGeneratedKeys="true" keyProperty="topicId" keyColumn="topic_id">
+		INSERT INTO `topic_program`
+		(`topic_name`, `topic_difficulty`, `topic_fraction`, `topic_description`,
+		`topic_stem`, `topic_timel`, `topic_memoryl`, `topic_sizel`,
+		`topic_stack`, `topic_answer`, `language_id`, `teacher_id` )
+		VALUES(#{topicName}, #{topicDifficulty}, #{topicFraction}, #{topicDescription},
+		 #{topicStem}, #{topicTimeL}, #{topicMemoryL}, #{topicSizeL},
+		 #{topicStack}, #{topicAnswer}, #{languageId}, #{teacherId});
+	</insert>
+	<insert id="addTopicKnow" parameterType="TopicKnowledge" >
+		INSERT INTO `topic_knowledge`
+		(`topic_id`, `topic_typeid`, `knowledge_id`)
+		VALUES (#{topicId}, #{topicTypeId}, #{knowledgeId});
+	</insert>
+
+	<select id="queryTopicById" parameterType="Integer" resultType="java.util.HashMap">
+		SELECT * FROM
+		<if test="topicTypeId == 1">`topic_judge`</if>
+		<if test="topicTypeId == 2">`topic_singleoptions`</if>
+		<if test="topicTypeId == 3">`topic_doubleoptions`</if>
+		<if test="topicTypeId == 4">`topic_fill`</if>
+		<if test="topicTypeId == 5">`topic_fillprogram`</if>
+		<if test="topicTypeId == 6">`topic_program`</if>
+		<if test="topicTypeId == 7">`topic_function`</if>
+		WHERE `topic_id` = #{topicId};
+	</select>
+	<select id="queryPoint" parameterType="Integer" resultType="KnowledgePoints">
+		SELECT * FROM
+		`topic_knowledge` AS tk, `knowledge_points` AS k
+		WHERE tk.`knowledge_id` = k.`knowledge_id`
+		AND tk.`topic_typeid` = #{topicTypeId}
+		AND `topic_id` = #{topicId};
+	</select>
+	<select id="queryPointBy" parameterType="Integer" resultType="KnowledgePoints">
+		SELECT * FROM `knowledge_points`
+		WHERE `knowledge_id` = #{knowledgeFatherId};
+	</select>
+
+	<select id="queryByTopicType" parameterType="Integer" resultType="BaseTopic">
+		SELECT DISTINCT un.`unit_school`, ti.`teacher_name`, t.`topic_id`, t.`topic_fraction`,
+		t.`topic_name`, t.`topic_difficulty`, t.`topic_time`, t.`topic_count`
+		<if test="topicTypeId == 5">, t. `topic_astatus`</if>
+		<if test="topicTypeId == 6">, t. `topic_astatus`</if>
+		<if test="topicTypeId == 7">, t. `topic_astatus`</if>
+		FROM `unit_info` AS un, `teacher_info` AS ti,
+		<if test="topicTypeId == 1">`topic_judge` AS t</if>
+		<if test="topicTypeId == 2">`topic_singleoptions` AS t</if>
+		<if test="topicTypeId == 3">`topic_doubleoptions` AS t</if>
+		<if test="topicTypeId == 4">`topic_fill` AS t</if>
+		<if test="topicTypeId == 5">`topic_fillprogram` AS t</if>
+		<if test="topicTypeId == 6">`topic_program` AS t</if>
+		<if test="topicTypeId == 7">`topic_function` AS t</if>
+		WHERE t.`teacher_id` = ti.`teacher_id`
+		AND ti.`unit_id` = un.`unit_id`
+		<if test="topicTypeId == 5">AND t.`topic_tstatus` = TRUE</if>
+		<if test="topicTypeId == 6">AND t.`topic_tstatus` = TRUE</if>
+		<if test="topicTypeId == 7">AND t.`topic_tstatus` = TRUE</if>
+	</select>
+
+	<select id="showTopicList" parameterType="QueryTopic" resultType="BaseTopic">
+		SELECT un.`unit_school`, ti.`teacher_name`, t.`topic_id`, t.`topic_astatus`,
+		t.`topic_name`, t.`topic_difficulty`, t.`topic_time`, t.`topic_count`, t.topic_fraction
+		<if test="topicTypeId == 5">, t.`topic_tstatus`</if>
+		<if test="topicTypeId == 6">, t.`topic_tstatus`</if>
+		<if test="topicTypeId == 7">, t.`topic_tstatus`</if>
+		FROM `unit_info` AS un, `teacher_info` AS ti
+		<if test="topicTypeId == 1">, `topic_judge` AS t</if>
+		<if test="topicTypeId == 2">, `topic_singleoptions` AS t</if>
+		<if test="topicTypeId == 3">, `topic_doubleoptions` AS t</if>
+		<if test="topicTypeId == 4">, `topic_fill` AS t</if>
+		<if test="topicTypeId == 5">, `topic_fillprogram` AS t</if>
+		<if test="topicTypeId == 6">, `topic_program` AS t</if>
+		<if test="topicTypeId == 7">, `topic_function` AS t</if>
+		<if test="knowledgeId != null">, `topic_knowledge` AS tk</if>
+		WHERE t.`teacher_id` = ti.`teacher_id`
+		AND ti.`unit_id` = un.`unit_id`
+		<if test="teacherId != null">AND t.`teacher_id` = #{teacherId}</if>
+		<if test="topicDifficulty != null">AND t.`topic_difficulty` = #{topicDifficulty}</if>
+		<if test="topicPermission != null">AND t.`topic_permission` = #{topicPermission}</if>
+		<if test="knowledgeId != null">AND tk.`knowledge_id` = #{knowledgeId}</if>
+		<if test="knowledgeId != null">AND tk.`topic_typeid` = #{topicTypeId}</if>
+		<if test="knowledgeId != null">AND tk.`topic_id` = t.`topic_id`</if>
+	</select>
+
+	<select id="queryTestCaseByIdX" parameterType="TestPointInfo" resultType="TestPointInfo">
+		SELECT `testpoint_id`, `testpoint_number`,
+		`testpoint_score`, `topic_tip`, `testpoint_time`
+		FROM `testpoint_info`
+		WHERE `topic_id` = #{topicId}
+		AND `topic_typeid` = #{topicTypeId};
+	</select>
+
+	<select id="queryCanUpdateTopic" parameterType="Integer" resultType="TopicProgram">
+
+	</select>
+</mapper>

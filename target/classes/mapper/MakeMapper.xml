@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="cn.jsu.oj.dao.MakeDao">
+
+	<insert id="addMakeTopic" parameterType="SubmitTopic">
+		INSERT INTO `submit_topic`
+		(`topicset_id`, `topic_id`, `topic_typeid`,
+		`account_id`, `language_id`, `submit_code`,
+		`judge_model`, `serial_number`)
+		VALUES (#{topicSetId}, #{topicId}, #{topicTypeId},
+		#{accountId}, #{languageId}, #{submitCode},
+		#{judgeModel}, #{serialNumber})
+	</insert>
+
+	<select id="queryWeight" parameterType="SubmitTopic" resultType="WAMax">
+		SELECT
+		<if test="topicTypeId == 6">`topic_weight`, `topic_memoryl`, `topic_timel`</if>
+		FROM
+		<if test="topicTypeId == 1">`topic_judge` AS t</if>
+		<if test="topicTypeId == 2">`topic_singleoptions` AS t</if>
+		<if test="topicTypeId == 3">`topic_doubleoptions` AS t</if>
+		<if test="topicTypeId == 4">`topic_fill` AS t</if>
+		<if test="topicTypeId == 5">`topic_fillprogram` AS t</if>
+		<if test="topicTypeId == 6">`topic_program` AS t</if>
+		<if test="topicTypeId == 7">`topic_function` AS t</if>
+		WHERE t.`topic_id` = #{topicId}
+	</select>
+
+	<!--<update id="addMakeTopic" parameterType="TopicMake">-->
+	<!--	UPDATE `testpoint_info`-->
+	<!--	SET-->
+	<!--	<if test="testPointNumber != null">`testpoint_number` = #{testPointNumber} ,</if>-->
+	<!--	<if test="testPointScore != null">`testpoint_score` = #{testPointScore},</if>-->
+	<!--	<if test="topicId != null">`topic_id` = #{topicId},</if>-->
+	<!--	<if test="topicTypeId != null">`topic_typeid` = #{topicTypeId} ,</if>-->
+	<!--	<if test="topicTip != null">`topic_tip` = #{topicTip}</if>-->
+	<!--    WHERE `testpoint_id` = #{testPointId};-->
+	<!--</update>-->
+
+	<select id="queryTopicBaseInfoX" parameterType="MakeRequest" resultType="MakeRequest">
+		SELECT qt.`topic_fraction`, qt.`topic_title`, qt.`topic_typeid`,
+		qt.`topic_id`, t.`topic_name`, t.`topic_description`,
+		ui.`unit_school`, ti.`teacher_name`, tt.`type_component`,
+		tt.`type_description`, t.`topic_timel`, t.`topic_memoryl`,
+		t.`topic_sizel`, t.`topic_stack`
+		FROM `qtest_topic` AS qt, `unit_info` AS ui, `topic_type` AS tt,
+		`teacher_info` AS ti
+		<if test="topicTypeId == 1">, `topic_judge` AS t</if>
+		<if test="topicTypeId == 2">, `topic_singleoptions` AS t</if>
+		<if test="topicTypeId == 3">, `topic_doubleoptions` AS t</if>
+		<if test="topicTypeId == 4">, `topic_fill` AS t</if>
+		<if test="topicTypeId == 5">, `topic_fillprogram` AS t</if>
+		<if test="topicTypeId == 6">, `topic_program` AS t</if>
+		<if test="topicTypeId == 7">, `topic_function` AS t</if>
+		WHERE qt.`test_id` =(
+		SELECT `test_id`
+		FROM `qtopicset_test`
+		WHERE `topicset_id` = #{topicSetId})
+		AND t.`topic_id` = qt.`topic_id`
+		AND t.`topic_id` = #{topicId}
+		AND qt.`topic_typeid` = tt.`topic_typeid`
+		AND t.`teacher_id` = ti.`teacher_id`
+		AND ti.`unit_id` = ui.`unit_id`
+		AND tt.`topic_typeid` = #{topicTypeId}
+	</select>
+
+	<select id="querySerialNumber" parameterType="SubmitTopic" resultType="LONG">
+		SELECT MAX(`serial_number`)
+		FROM `submit_topic`
+		WHERE `topicset_id` = #{topicSetId}
+		AND `topic_id` = #{topicId}
+		AND `topic_typeid` = #{topicTypeId}
+		AND `account_id` = #{accountId};
+	</select>
+
+	<select id="showTopicSubmit" parameterType="SubmitTopic" resultType="MakeResult">
+		SELECT st.`submit_time`, st.`submit_code`,
+		cl.`language_name`, st.`compilation_info`, ai.`account_nickname`
+		FROM `submit_topic` AS st, `compiler_language` AS cl, `account_info` AS ai
+		WHERE st.`serial_number` = #{serialNumber}
+		AND st.`language_id` = cl.`language_id`
+		AND ai.`account_id` = st.`account_id`
+	</select>
+	<select id="showPoint" parameterType="SubmitTopic" resultType="PointResult">
+		SELECT jr.`serial_number`, js.`situation_name`,
+		jr.`situation_id`, jr.`judgepoint_score`, jr.`runTime`, jr.`runMemory`
+		FROM `judgepoint_result` AS jr,
+		`judge_situation` AS js
+		WHERE jr.`serial_number` = #{serialNumber}
+		AND jr.`situation_id` = js.`situation_id`
+	</select>
+
+	<select id="showTopicSubmitList" parameterType="SubmitTopic" resultType="ListOfResult">
+		SELECT DISTINCT jr.`serial_number`, jr.`testpoint_number`, st.`topic_typeid`,
+		jr.`situation_id`, jr.`judgepoint_score`, jr.`runTime`, ai.`account_nickname`,
+		jr.`runMemory`, js.`situation_name`, st.`submit_time`,
+		qt.`topic_title` , ti.`teacher_name`, cl.`language_name`
+		FROM `judgepoint_result` AS jr, `qtest_topic` AS qt,
+		`judge_situation` AS js, `submit_topic` AS st, `teacher_info` AS ti,
+		`compiler_language` AS cl, `qtopicset_test` AS qtt, `account_info` AS ai
+		<if test="topicTypeId == 5">, `topic_fillprogram` AS t</if>
+		<if test="topicTypeId == 6">, `topic_program` AS t</if>
+		<if test="topicTypeId == 7">, `topic_function` AS t</if>
+		WHERE st.`topicset_id` = #{topicSetId}
+		<if test="accountId != null">AND st.`topic_id` = #{topicId}</if>
+		<if test="accountId != null">AND st.`topic_typeid` = #{topicTypeId}</if>
+		<if test="accountId != null">AND st.`account_id` = #{accountId}</if>
+		AND qtt.`test_id` = qt.`test_id`
+		AND st.`topic_id` = qt.`topic_id`
+		AND st.`topic_typeid` = qt.`topic_typeid`
+		AND st.`serial_number` = jr.`serial_number`
+		AND jr.`situation_id` = js.`situation_id`
+		AND t.`teacher_id` = ti.`teacher_id`
+		AND cl.`language_id` = st.`language_id`
+		AND qtt.`topicset_id` = st.`topicset_id`
+		AND t.`topic_id` = st.`topic_id`
+		AND ai.`account_id` = st.`account_id`
+	</select>
+	<select id="queryIdAndTId" parameterType="SubmitTopic" resultType="SubmitTopic">
+		SELECT `topic_id`, `topic_typeid`
+		FROM `submit_topic`
+		WHERE `topicset_id` = #{topicSetId}
+		AND `account_id` = #{accountId}
+	</select>
+	<select id="queryIdAndTIdNoAccount" parameterType="SubmitTopic" resultType="SubmitTopic">
+		SELECT DISTINCT `topic_id`, `topic_typeid`, `account_id`
+		FROM `submit_topic`
+		WHERE `topicset_id` = #{topicSetId}
+		AND `account_id` != #{accountId}
+	</select>
+</mapper>

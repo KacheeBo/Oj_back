@@ -1,0 +1,87 @@
+# 应用服务 WEB 访问端口
+server:
+    port: 8080
+
+#应用名称
+spring:
+    application:
+        name: oj
+    main:
+        lazy-initialization: false
+
+    datasource:
+        #这里包含了时区serverTimezone=UTC
+        url: jdbc:mysql://10.6.3.102:3306/judge?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        username: root
+        password: 123456
+        type: com.alibaba.druid.pool.DruidDataSource
+        
+        #Spring Boot 默认是不注入这些属性值的，需要自己绑定
+        #druid 数据源专有配置
+        initialSize: 5
+        minIdle: 5
+        maxActive: 20
+        maxWait: 60000
+        timeBetweenEvictionRunsMillis: 60000
+        minEvictableIdleTimeMillis: 300000
+        validationQuery: SELECT 1 FROM DUAL
+        testWhileIdle: true
+        testOnBorrow: false
+        testOnReturn: false
+        poolPreparedStatements: true
+        
+        #配置监控统计拦截的filters，stat:监控统计、log4j：日志记录、wall：防御sql注入
+        #如果允许时报错  java.lang.ClassNotFoundException: org.apache.log4j.Priority
+        #则导入 log4j 依赖即可，Maven 地址：https://mvnrepository.com/artifact/log4j/log4j
+        filters: stat,wall,log4j
+        maxPoolPreparedStatementPerConnectionSize: 20
+        useGlobalDataSourceStat: true
+        connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
+    servlet:
+        multipart:
+            max-file-size: 80MB
+            max-request-size: 100MB
+            
+#整合mybatis
+mybatis:
+    type-aliases-package: cn.jsu.oj.pojo
+    configuration:
+        map-underscore-to-camel-case: true
+    mapper-locations: classpath:mapper/*.xml
+
+netty:
+    port: 7777
+    sizeIn: 1000
+    sizeOut: 1000
+    lowerMachine: 10.6.3.102
+    
+# pagehelper
+pagehelper:
+    helperDialect: mysql
+    reasonable: true
+    supportMethodsArguments: true
+    params: count=countSql
+
+redis:
+    # Redis服务器地址
+#    host: 10.6.3.101
+    host: 10.6.3.101
+    # Redis服务器连接端口
+    port: 6379
+    #    password: 123456
+    #     Redis服务器连接密码（默认为空）
+    lettuce:
+        shutdown-timeout: 0
+      # 连接超时时间（毫秒）
+    timeout: 10000
+    jedis:
+        pool:
+            # 连接池最大连接数（使用负值表示没有限制）
+            max-active: 8
+            # 连接池最大阻塞等待时间（使用负值表示没有限制）
+            max-wait: -1
+            # 连接池中的最大空闲连接
+            max-idle: 500
+            # 连接池中的最小空闲连接
+            min-idle: 0
